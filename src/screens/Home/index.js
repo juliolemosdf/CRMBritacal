@@ -35,7 +35,7 @@ export default function HomeScreen() {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.uidText}>UID: {userUID}</Text>
+          
       <TouchableOpacity style={styles.button} onPress={() => console.log('Cadastrar Produtor')}>
         <Text style={styles.buttonText}>Cadastrar Produtor</Text>
       </TouchableOpacity>
