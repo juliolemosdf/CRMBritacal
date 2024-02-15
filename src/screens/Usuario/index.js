@@ -1,58 +1,133 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Image, TouchableHighlight, Platform } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import firebaseConfig from './firebaseConfig';
-import { initializeApp } from 'firebase/app';
-import { getStorage, ref as firebaseRef, uploadBytes } from 'firebase/storage';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  Image,
+} from "react-native";
+import { getDatabase, ref, set, get } from "firebase/database";
+import { app, auth } from "../../components/firebase"; // Ajuste conforme necessário
+import { useNavigation } from "@react-navigation/native"; // Importe useNavigation
 
-// Inicializa o Firebase
-initializeApp(firebaseConfig);
+export default function UserScreen() {
+  const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [regiao, setRegiao] = useState("");
+  const [userUID, setUserUID] = useState("");
+  const navigation = useNavigation(); // Hook de navegação
 
-export default function App() {
   useEffect(() => {
-    (async () => {
-      if (Platform.OS !== 'web') {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          alert('Sorry, we need camera roll permissions to make this work!');
-        }
-      }
-    })();
+    const user = auth.currentUser;
+    if (user) {
+      setUserUID(user.uid);
+    }
   }, []);
 
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+  useEffect(() => {
+    const fetchUserData = () => {
+      const database = getDatabase(app);
+      const userRef = ref(database, "usuarios/" + userUID);
 
-    if (!result.cancelled) {
-      const storage = getStorage(); // Acessa o storage
-      // Corrige o nome da variável para evitar conflitos
-      const storageRef = firebaseRef(storage, `images/${new Date().getTime()}.jpg`); // Cria uma referência única para cada imagem
-
-      // Converte a imagem para um blob
-      const img = await fetch(result.uri);
-      const bytes = await img.blob();
-
-      // Faz o upload da imagem
-      await uploadBytes(storageRef, bytes)
-        .then(() => {
-          alert('Image uploaded successfully!');
+      get(userRef)
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            const userData = snapshot.val();
+            setNome(userData.nome || "");
+            setTelefone(userData.telefone || "");
+            setRegiao(userData.regiao || "");
+          }
         })
         .catch((error) => {
-          alert('Upload failed:', error);
+          console.error(error);
         });
-    }
+    };
+
+    if (userUID) fetchUserData();
+  }, [userUID]);
+
+  const handleAddOrUpdateUser = () => {
+    const database = getDatabase(app);
+    const userRef = ref(database, "usuarios/" + userUID);
+
+    set(userRef, {
+      nome: nome,
+      telefone: telefone,
+      regiao: regiao,
+    })
+      .then(() => {
+        alert(`Usuário ${nome ? "atualizado" : "cadastrado"} com sucesso!`);
+        navigation.navigate("Home"); // Navegar para a tela Home após cadastro/atualização
+      })
+      .catch((error) => {
+        console.error("Erro ao adicionar/atualizar usuário:", error);
+        alert("Erro ao cadastrar/atualizar usuário.");
+      });
   };
 
   return (
-    <View style={{flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center'}}>
-      <TouchableHighlight onPress={pickImage}>
-        <Text>Select Image</Text>
-      </TouchableHighlight>
+    <View style={styles.container}>
+      <Image
+        source={require("../../image/logo.png")}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      <TextInput
+        placeholder="Nome"
+        value={nome}
+        onChangeText={setNome}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Telefone"
+        value={telefone}
+        keyboardType="phone-pad"
+        onChangeText={setTelefone}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Região"
+        value={regiao}
+        onChangeText={setRegiao}
+        style={styles.input}
+      />
+      <TouchableOpacity onPress={handleAddOrUpdateUser} style={styles.button}>
+        <Text style={styles.buttonText}>
+          {nome ? "Atualizar" : "Cadastrar"}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 20,
+  },
+  input: {
+    height: 50,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#cccccc",
+    paddingHorizontal: 15,
+    borderRadius: 5,
+  },
+  button: {
+    backgroundColor: "#208404",
+    padding: 15,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  logo: {
+    width: 250, // Ajuste a largura conforme necessário
+    height: 100, // Altura ajustada para manter a proporção
+    marginBottom: 20,
+  },
+});

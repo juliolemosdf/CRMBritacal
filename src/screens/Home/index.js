@@ -36,10 +36,10 @@ export default function HomeScreen() {
               resizeMode="contain"
             />
           
-      <TouchableOpacity style={styles.button} onPress={() => console.log('Cadastrar Produtor')}>
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Cadastrar Produtor')}>
         <Text style={styles.buttonText}>Cadastrar Produtor</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={() => console.log('Área do Produtor')}>
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Area Produtor')}>
         <Text style={styles.buttonText}>Área do Produtor</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={() => console.log('Relatórios')}>
